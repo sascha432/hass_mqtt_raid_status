@@ -1,0 +1,33 @@
+#
+# Author: sascha_lammers@gmx.de
+#
+
+# device name
+DEVICE="acidpi4"
+
+# raid device /dev/mdXX
+RAIDDEVICE="md0"
+
+# ria dlevel
+RAIDLEVEL="$(mdadm --misc --detail /dev/${RAIDDEVICE} | grep 'Raid Level :' | cut -f 2 -d':' | sed s'/ //'g)"
+
+# hass name
+HASSNAME="${DEVICE^} ${RAIDLEVEL^} /dev/${RAIDDEVICE}"
+
+# MQTT hass autoconf prefix
+HASSPREFIX="homeassistant"
+
+# MQTT status topic prefix
+HASSSTATUSPREFIX="home"
+
+# Mosquitto extra arguments like hostname, port, username etc...
+MOSEXTRAARGS=""
+
+# unique id for hass
+UNIQUEID="$(blkid -o value /dev/$RAIDDEVICE | md5sum | cut -b-12)"
+
+# mdadm version
+MDADMVER="$(mdadm -V 2>&1)"
+
+# OS version
+OSVER="$(uname -r -o -s -m)"

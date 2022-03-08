@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+# Author: sascha_lammers@gmx.de
+#
+
+DIR="$(dirname $0)"
+. "$DIR/config"
+
+MOSQ_PUB="mosquitto_pub"
+# uncomment the next line to display cli commands instead executing them
+MOSQ_PUB="echo mosquitto_pub"
+
+# hass auto conf
+$MOSQ_PUB "$MOSEXTRAARGS" -r -t \'"$HASSPREFIX/sensor/${DEVICE}_${RAIDLEVEL}_${RAIDDEVICE}/config"\' \
+    -m \'"{\"name\":\"${HASSNAME}\",\"platform\":\"mqtt\",\"unique_id\":\"${DEVICE}_${RAIDLEVEL}_${RAIDDEVICE}_${UNIQUEID}\",\"icon\":\"mdi:harddisk\",\"availability_topic\":\"${HASSSTATUSPREFIX}/${DEVICE}_${RAIDLEVEL}_${RAIDDEVICE}/status\",\"payload_available\":\"1\",\"payload_not_available\":\"0\",\"device\":{\"identifiers\":[\"${DEVICE}_${RAIDLEVEL}_${RAIDDEVICE}_${UNIQUEID}\"],\"name\":\"${DEVICE}_${RAIDLEVEL}_dev_${RAIDDEVICE}\",\"model\":\"mdadm\",\"sw_version\":\"${MDADMVER}\",\"manufacturer\":\"${OSVER}\"},\"state_topic\":\"${HASSSTATUSPREFIX}/${DEVICE}_${RAIDLEVEL}_${RAIDDEVICE}/status\"}"\'
+
+# online status
+$MOSQ_PUB "$MOSEXTRAARGS" -r -t \""${HASSSTATUSPREFIX}/${DEVICE}_${RAIDLEVEL}_${RAIDDEVICE}/status"\" -m "1"
+
+# update status
+STATE="$(mdadm --misc --detail /dev/${RAIDDEVICE} | grep 'State :' | cut -f 2 -d':' | sed s'/ //'g)"
+$MOSQ_PUB "$MOSEXTRAARGS" -r -t "\"${HASSSTATUSPREFIX}/${DEVICE}_${RAIDLEVEL}_${RAIDDEVICE}/status\"" -m "\"${STATE^}\""
