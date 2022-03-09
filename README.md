@@ -9,6 +9,11 @@ Simple bash script to monitor the raid status provided by mdadm with home assist
 
 Binaries must be in PATH
 
+### Optional for Debugging
+
+ - mosquitto_sub
+ - jq
+
 ## Configuration
 
 Edit `config` to change your device name and the raid device
@@ -21,6 +26,12 @@ Currently only one device is supported. To monitor multiple devices just create 
 
 Run as `root` from /etc/cron.hourly to get hourly updates. `mdadm` requires root privileges to be executed
 
+Alternatively run it from `/etc/crontab` every 15min or the desired interval
+
+```bash
+*/15 *  * * *   root    <DIR>/check-raid
+```
+
 ## Home Assistant Integration
 
 The device can be found under Configuration / Devices (`http://YOURDOMAIN:8123/config/devices/dashboard`)
@@ -29,5 +40,5 @@ The device can be found under Configuration / Devices (`http://YOURDOMAIN:8123/c
 
 ## Automation Alarm
 
-To trigger any alarm if the raid fails, you can add an automation if the state of the sensor changes from `Clean` or `Active` to another state
+To trigger any alarm if the raid fails, you can add an automation if the state of the sensor changes from `Clean` or `Active` to another state. Other states might be `Degraded`, `Resync`, `Rebuild`, ... Check the mdadm man page for more details
 

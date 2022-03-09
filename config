@@ -2,34 +2,42 @@
 # Author: sascha_lammers@gmx.de
 #
 
-# device name
+# choose your device name
+#DEVICE="$HOSTNAME"
+#DEVICE="my_device"
 DEVICE="$(hostname)"
 
 # raid device /dev/mdXX
 RAID_DEVICE="md0"
 
-# ria dlevel
+# get raid level
 RAID_LEVEL="$(mdadm --misc --detail /dev/${RAID_DEVICE} | grep 'Raid Level :' | cut -f 2 -d':' | sed s'/ //'g)"
 
-# hass name
+# hass common name, used for both entities. the name for each entity can be changed below
 HASS_DEVICE_NAME="${DEVICE^} ${RAID_LEVEL^} /dev/${RAID_DEVICE}"
+
+# name for the state
+HASS_DEVICE_NAME_STATE="$HASS_DEVICE_NAME"
+
+# name for the last update time
+HASS_DEVICE_NAME_LAST_UPDATE="$HASS_DEVICE_NAME"
 
 # MQTT hass autoconf prefix
 HASS_AUTOCONF_TOPIC="homeassistant"
 
-# MQTT status topic prefix
+# MQTT topic prefix
 HASS_BASE_TOPIC="home"
 
 # Mosquitto extra arguments like hostname, port, username etc...
 MOSQUITTO_XTRA_ARGS=""
 
-# unique id for hass
+# get unique id for hass
 UNIQUE_ID="$(blkid -o value /dev/$RAID_DEVICE | md5sum | cut -b-12)"
 
-# mdadm version
+# get mdadm version
 MDADM_VERSION="$(mdadm -V 2>&1)"
 
-# OS version
+# get OS version
 OS_VERSION="$(uname -r -o -s -m)"
 
 # mosquitto binaries
