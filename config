@@ -3,31 +3,39 @@
 #
 
 # device name
-DEVICE="acidpi4"
+DEVICE="$(hostname)"
 
 # raid device /dev/mdXX
-RAIDDEVICE="md0"
+RAID_DEVICE="md0"
 
 # ria dlevel
-RAIDLEVEL="$(mdadm --misc --detail /dev/${RAIDDEVICE} | grep 'Raid Level :' | cut -f 2 -d':' | sed s'/ //'g)"
+RAID_LEVEL="$(mdadm --misc --detail /dev/${RAID_DEVICE} | grep 'Raid Level :' | cut -f 2 -d':' | sed s'/ //'g)"
 
 # hass name
-HASSNAME="${DEVICE^} ${RAIDLEVEL^} /dev/${RAIDDEVICE}"
+HASS_DEVICE_NAME="${DEVICE^} ${RAID_LEVEL^} /dev/${RAID_DEVICE}"
 
 # MQTT hass autoconf prefix
-HASSPREFIX="homeassistant"
+HASS_AUTOCONF_TOPIC="homeassistant"
 
 # MQTT status topic prefix
-HASSSTATUSPREFIX="home"
+HASS_BASE_TOPIC="home"
 
 # Mosquitto extra arguments like hostname, port, username etc...
-MOSEXTRAARGS=""
+MOSQUITTO_XTRA_ARGS=""
 
 # unique id for hass
-UNIQUEID="$(blkid -o value /dev/$RAIDDEVICE | md5sum | cut -b-12)"
+UNIQUE_ID="$(blkid -o value /dev/$RAID_DEVICE | md5sum | cut -b-12)"
 
 # mdadm version
-MDADMVER="$(mdadm -V 2>&1)"
+MDADM_VERSION="$(mdadm -V 2>&1)"
 
 # OS version
-OSVER="$(uname -r -o -s -m)"
+OS_VERSION="$(uname -r -o -s -m)"
+
+# mosquitto binaries
+
+#MOSQUITTO_PUB_BIN="/usr/bin/mosquitto_pub"
+MOSQUITTO_PUB_BIN="mosquitto_pub"
+
+#MOSQUITTO_SUB_BIN="/usr/bin/mosquitto_sub"
+MOSQUITTO_SUB_BIN="mosquitto_sub"

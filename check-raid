@@ -3,24 +3,67 @@
 # Author: sascha_lammers@gmx.de
 #
 
-DIR="$(dirname $(realpath -P $0))"
-. "$DIR/config"
+VERSION="0.0.2"
 
-#MOSQ_PUB="/usr/bin/mosquitto_pub"
-MOSQ_PUB="mosquitto_pub"
+if [ "x$1" == "x-v" ] ; then
+    echo "Check-raid $VERSION"
+    exit 0
+fi
+
+# get location of the script with resolved symlinks to include the config file
+BASEDIR="$(dirname $(realpath -P $0))"
+. "$BASEDIR/config"
+
+DEBUG=0
+# uncomment to query MQTT after sending the messages
+DEBUG=1
 
 # uncomment the next line to display cli commands instead executing them
-#MOSQ_PUB="echo $MOSQ_PUB"
+#MOSQUITTO_PUB_BIN="echo $MOSQUITTO_PUB_BIN" ; DEBUG=0
 
-# hass auto conf
+# variables
+AVAILABILITY_TOPIC="${HASS_BASE_TOPIC}/${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}/status"
+LAST_UPDATE_TOPIC="${HASS_BASE_TOPIC}/${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}/last_update"
+STATE_TOPIC="${HASS_BASE_TOPIC}/${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}/state"
+ENTITY="${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}"
+UNIQUE_ID_PREFIX="${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}_${UNIQUE_ID}"
+OBJECT_ID="${HASS_BASE_TOPIC}/${ENTITY}"
 ONLINE="1"
 OFFLINE="0"
-$MOSQ_PUB $MOSEXTRAARGS -r -t "$HASSPREFIX/sensor/${DEVICE}_${RAIDLEVEL}_${RAIDDEVICE}/config" \
-    -m \'"{\"name\":\"${HASSNAME}\",\"platform\":\"mqtt\",\"unique_id\":\"${DEVICE}_${RAIDLEVEL}_${RAIDDEVICE}_${UNIQUEID}\",\"icon\":\"mdi:harddisk\",\"availability_topic\":\"${HASSSTATUSPREFIX}/${DEVICE}_${RAIDLEVEL}_${RAIDDEVICE}/status\",\"payload_available\":\"${ONLINE}\",\"payload_not_available\":\"${OFFLINE}\",\"device\":{\"identifiers\":[\"${DEVICE}_${RAIDLEVEL}_${RAIDDEVICE}_${UNIQUEID}\"],\"name\":\"${DEVICE}_${RAIDLEVEL}_dev_${RAIDDEVICE}\",\"model\":\"mdadm\",\"sw_version\":\"${MDADMVER}\",\"manufacturer\":\"${OSVER}\"},\"state_topic\":\"${HASSSTATUSPREFIX}/${DEVICE}_${RAIDLEVEL}_${RAIDDEVICE}/status\"}"\'
+STATE="$(mdadm --misc --detail /dev/${RAID_DEVICE} | grep 'State :' | cut -f 2 -d':' | sed s'/ //'g)"
+
+# hass auto conf
+$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "$HASS_AUTOCONF_TOPIC/sensor/${ENTITY}/state/config" \
+    -m "{\"name\":\"${HASS_DEVICE_NAME}\",\"platform\":\"mqtt\",\"uniq_id\":\"${UNIQUE_ID_PREFIX}_0\",\"obj_id\":\"${OBJECT_ID}_state\",\"icon\":\"mdi:harddisk\",\"avty_t\":\"${AVAILABILITY_TOPIC}\",\"pl_avail\":\"${ONLINE}\",\"pl_not_avail\":\"${OFFLINE}\",\"stat_t\":\"${STATE_TOPIC}\",\"dev\":{\"identifiers\":[\"${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}_${UNIQUE_ID}_0\"],\"name\":\"${DEVICE}_${RAID_LEVEL}_dev_${RAID_DEVICE}\",\"model\":\"mdadm\",\"sw_version\":\"${MDADM_VERSION}\",\"manufacturer\":\"${OS_VERSION}\"}}"
+
+$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "$HASS_AUTOCONF_TOPIC/sensor/${ENTITY}/last_update/config" \
+    -m "{\"name\":\"${HASS_DEVICE_NAME}\",\"platform\":\"mqtt\",\"uniq_id\":\"${UNIQUE_ID_PREFIX}_1\",\"obj_id\":\"${OBJECT_ID}_last_update\",\"dev_cla\":\"timestamp\",\"avty_t\":\"${AVAILABILITY_TOPIC}\",\"pl_avail\":\"${ONLINE}\",\"pl_not_avail\":\"${OFFLINE}\",\"stat_t\":\"${LAST_UPDATE_TOPIC}\",\"dev\":{\"identifiers\":[\"${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}_${UNIQUE_ID}_1\"],\"name\":\"${DEVICE}_${RAID_LEVEL}_dev_${RAID_DEVICE}\",\"model\":\"mdadm\",\"sw_version\":\"${MDADM_VERSION}\",\"manufacturer\":\"${OS_VERSION}\"}}"
 
 # online status
-$MOSQ_PUB $MOSEXTRAARGS -r -t "${HASSSTATUSPREFIX}/${DEVICE}_${RAIDLEVEL}_${RAIDDEVICE}/status" -m "${ONLINE}"
+$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${AVAILABILITY_TOPIC}" -m "${ONLINE}"
 
-# update status
-STATE="$(mdadm --misc --detail /dev/${RAIDDEVICE} | grep 'State :' | cut -f 2 -d':' | sed s'/ //'g)"
-$MOSQ_PUB $MOSEXTRAARGS -r -t "${HASSSTATUSPREFIX}/${DEVICE}_${RAIDLEVEL}_${RAIDDEVICE}/status" -m "${STATE^}"
+# update state
+$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${STATE_TOPIC}" -m "${STATE^}"
+
+# update last update
+$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${LAST_UPDATE_TOPIC}" -m "$(date -Iseconds)"
+
+# display MQTT messages if debugging is enabled
+if [ "$DEBUG" == "1" ] ; then
+    LINE="$(printf -- '-%.0s' {1..76})"
+    # install jq for pretty json
+    # apt install jq
+    which jq &>/dev/null && JQ=$(which jq) || JQ="cat"
+    echo -e "$LINE\nDEBUG: MQTT Messages"
+    echo -e "$LINE\nState config:"
+    $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "$HASS_AUTOCONF_TOPIC/sensor/${ENTITY}/state/config" -C 1 | "$JQ"
+    echo -e "$LINE\nLast update config:"
+    $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "$HASS_AUTOCONF_TOPIC/sensor/${ENTITY}/last_update/config" -C 1 | "$JQ"
+    echo -en "$LINE\nStatus topic: ${AVAILABILITY_TOPIC}: "
+    $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${AVAILABILITY_TOPIC}" -C 1
+    echo -en "$LINE\nEntity: ${OBJECT_ID}_state: "
+    $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${STATE_TOPIC}" -C 1
+    echo -en "$LINE\nEntity: ${OBJECT_ID}_last_update: "
+    $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${LAST_UPDATE_TOPIC}" -C 1
+    echo "$LINE"
+fi

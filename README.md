@@ -25,11 +25,9 @@ Run as `root` from /etc/cron.hourly to get hourly updates. `mdadm` requires root
 
 The device can be found under Configuration / Devices (`http://YOURDOMAIN:8123/config/devices/dashboard`)
 
-The entity name is `sensor.acidpi4_raid1_dev_md0`. After modifying the configuration, the name, raid level and device will change
-
 ![Devices](https://raw.githubusercontent.com/sascha432/hass_mqtt_raid_status/master/device.png)
 
 ## Automation Alarm
 
-To trigger any alarm if the raid fails, you can add an automation if the state of the sensor changes from `Clean` to another state
+To trigger any alarm if the raid fails, you can add an automation if the state of the sensor changes from `Clean` or `Active` to another state
 
