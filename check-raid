@@ -3,12 +3,14 @@
 # Author: sascha_lammers@gmx.de
 #
 
-DIR="$(dirname $0)"
+DIR="$(dirname $(realpath -P $0))"
 . "$DIR/config"
 
+#MOSQ_PUB="/usr/bin/mosquitto_pub"
 MOSQ_PUB="mosquitto_pub"
+
 # uncomment the next line to display cli commands instead executing them
-#MOSQ_PUB="echo mosquitto_pub"
+#MOSQ_PUB="echo $MOSQ_PUB"
 
 # hass auto conf
 ONLINE="1"
