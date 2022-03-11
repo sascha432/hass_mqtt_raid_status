@@ -38,6 +38,22 @@ The device can be found under Configuration / Devices (`http://YOURDOMAIN:8123/c
 
 ![Devices](https://raw.githubusercontent.com/sascha432/hass_mqtt_raid_status/master/device.png)
 
+### Template with state and last update time
+
+Replace `acidpi4_raid1_md0_*` with your entity ids
+
+```ninja
+{{ states.sensor.acidpi4_raid1_md0_state.state }}
+{{ relative_time(states.sensor.acidpi4_raid1_md0_last_update.last_updated) }} ago
+```
+
+Output:
+
+```txt
+Clean
+3 minutes ago
+```
+
 ## Automation Alarm
 
 To trigger any alarm if the raid fails, you can add an automation if the state of the sensor changes from `Clean` or `Active` to another state. Other states might be `Degraded`, `Resync`, `Rebuild`, ... Check the mdadm man page for more details
