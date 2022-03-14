@@ -56,5 +56,9 @@ Clean
 
 ## Automation Alarm
 
-To trigger any alarm if the raid fails, you can add an automation if the state of the sensor changes from `Clean` or `Active` to another state. Other states might be `Degraded`, `Resync`, `Rebuild`, ... Check the mdadm man page for more details
+To trigger any alarm if the raid fails, you can add an automation if the state of the sensor changes from `Clean` or `Active` to another state
 
+### Other States Observed
+
+- Degraded mirrored raid during rebuild `Clean,degraded,recovering`
+- Degraded mirrored raid with missing drive `Clean,degraded`
