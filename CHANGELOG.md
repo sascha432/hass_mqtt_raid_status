@@ -2,6 +2,7 @@
 
 ## 0.0.2
 
+ - Added total, free, used and used space in percent
  - Template example with state and last updated time
  - Removed topic prefix from object_id
  - Added last update timestamp

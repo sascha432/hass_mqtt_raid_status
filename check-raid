@@ -17,6 +17,9 @@ BASEDIR="$(dirname $(realpath -P $0))"
 DEBUG=0
 # uncomment to query MQTT after sending the messages
 #DEBUG=1
+if [ "x$1" == "x--debug" ] ; then
+    DEBUG=1
+fi
 
 # uncomment the next line to display cli commands instead executing them
 #MOSQUITTO_PUB_BIN="echo $MOSQUITTO_PUB_BIN" ; DEBUG=0
@@ -25,21 +28,40 @@ DEBUG=0
 AVAILABILITY_TOPIC="${HASS_BASE_TOPIC}/${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}/status"
 LAST_UPDATE_TOPIC="${HASS_BASE_TOPIC}/${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}/last_update"
 STATE_TOPIC="${HASS_BASE_TOPIC}/${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}/state"
+DISK_TOTAL_TOPIC="${HASS_BASE_TOPIC}/${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}/total"
+DISK_USED_TOPIC="${HASS_BASE_TOPIC}/${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}/used"
+DISK_FREE_TOPIC="${HASS_BASE_TOPIC}/${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}/free"
+DISK_PERCENT_TOPIC="${HASS_BASE_TOPIC}/${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}/used_pct"
+
 ENTITY="${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}"
 UNIQUE_ID_PREFIX="${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}_${UNIQUE_ID}"
 OBJECT_ID="${ENTITY}"
 HASS_AUTO_CONF_STATE="${HASS_AUTOCONF_TOPIC}/sensor/${ENTITY}/state/config"
 HASS_AUTO_CONF_LAST_UPDATE="${HASS_AUTOCONF_TOPIC}/sensor/${ENTITY}/last_update/config"
+HASS_AUTO_CONF_DISK_TOTAL="${HASS_AUTOCONF_TOPIC}/sensor/${ENTITY}/total/config"
+HASS_AUTO_CONF_DISK_FREE="${HASS_AUTOCONF_TOPIC}/sensor/${ENTITY}/free/config"
+HASS_AUTO_CONF_DISK_USED="${HASS_AUTOCONF_TOPIC}/sensor/${ENTITY}/used/config"
+HASS_AUTO_CONF_DISK_PCT="${HASS_AUTOCONF_TOPIC}/sensor/${ENTITY}/used_pct/config"
 ONLINE="1"
 OFFLINE="0"
+
 STATE="$(mdadm --misc --detail /dev/${RAID_DEVICE} | grep 'State :' | cut -f 2 -d':' | sed s'/ //'g)"
+DISK_INFO="$(df -H | grep /dev/${RAID_DEVICE} | cut -b 12- | sed 's/^ *//g' | sed 's/  / /g')"
+
+DISK_TOTAL=$(echo "$DISK_INFO" | cut -f 1 -d ' ')
+DISK_USED=$(echo "$DISK_INFO" | cut -f 2 -d ' ')
+DISK_FREE=$(echo "$DISK_INFO" | cut -f 3 -d ' ')
+DISK_PERCENT=$(echo "$DISK_INFO" | cut -f 4 -d ' ')
 
 # hass auto conf
-$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${HASS_AUTO_CONF_STATE}" \
-    -m "{\"name\":\"${HASS_DEVICE_NAME_STATE}\",\"platform\":\"mqtt\",\"uniq_id\":\"${UNIQUE_ID_PREFIX}_0\",\"obj_id\":\"${OBJECT_ID}_state\",\"icon\":\"mdi:harddisk\",\"avty_t\":\"${AVAILABILITY_TOPIC}\",\"pl_avail\":\"${ONLINE}\",\"pl_not_avail\":\"${OFFLINE}\",\"stat_t\":\"${STATE_TOPIC}\",\"dev\":{\"identifiers\":[\"${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}_${UNIQUE_ID}\"],\"name\":\"${DEVICE}_${RAID_LEVEL}_dev_${RAID_DEVICE}\",\"model\":\"mdadm\",\"sw_version\":\"${MDADM_VERSION}\",\"manufacturer\":\"${OS_VERSION}\"}}"
+$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${HASS_AUTO_CONF_STATE}"  -m "{\"name\":\"${HASS_DEVICE_NAME}\",\"platform\":\"mqtt\",\"uniq_id\":\"${UNIQUE_ID_PREFIX}_0\",\"obj_id\":\"${OBJECT_ID}_state\",\"icon\":\"mdi:harddisk\",\"avty_t\":\"${AVAILABILITY_TOPIC}\",\"pl_avail\":\"${ONLINE}\",\"pl_not_avail\":\"${OFFLINE}\",\"stat_t\":\"${STATE_TOPIC}\",\"dev\":{\"identifiers\":[\"${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}_${UNIQUE_ID}\"],\"name\":\"${DEVICE}_${RAID_LEVEL}_dev_${RAID_DEVICE}\",\"model\":\"mdadm\",\"sw_version\":\"${MDADM_VERSION}\",\"manufacturer\":\"${OS_VERSION}\"}}"
+$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${HASS_AUTO_CONF_LAST_UPDATE}" -m "{\"name\":\"${HASS_DEVICE_NAME}\",\"platform\":\"mqtt\",\"uniq_id\":\"${UNIQUE_ID_PREFIX}_1\",\"obj_id\":\"${OBJECT_ID}_last_update\",\"dev_cla\":\"timestamp\",\"avty_t\":\"${AVAILABILITY_TOPIC}\",\"pl_avail\":\"${ONLINE}\",\"pl_not_avail\":\"${OFFLINE}\",\"stat_t\":\"${LAST_UPDATE_TOPIC}\",\"dev\":{\"identifiers\":[\"${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}_${UNIQUE_ID}\"],\"name\":\"${DEVICE}_${RAID_LEVEL}_dev_${RAID_DEVICE}\",\"model\":\"mdadm\",\"sw_version\":\"${MDADM_VERSION}\",\"manufacturer\":\"${OS_VERSION}\"}}"
 
-$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${HASS_AUTO_CONF_LAST_UPDATE}" \
-    -m "{\"name\":\"${HASS_DEVICE_NAME_LAST_UPDATE}\",\"platform\":\"mqtt\",\"uniq_id\":\"${UNIQUE_ID_PREFIX}_1\",\"obj_id\":\"${OBJECT_ID}_last_update\",\"dev_cla\":\"timestamp\",\"avty_t\":\"${AVAILABILITY_TOPIC}\",\"pl_avail\":\"${ONLINE}\",\"pl_not_avail\":\"${OFFLINE}\",\"stat_t\":\"${LAST_UPDATE_TOPIC}\",\"dev\":{\"identifiers\":[\"${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}_${UNIQUE_ID}\"],\"name\":\"${DEVICE}_${RAID_LEVEL}_dev_${RAID_DEVICE}\",\"model\":\"mdadm\",\"sw_version\":\"${MDADM_VERSION}\",\"manufacturer\":\"${OS_VERSION}\"}}"
+# auto conf disk info
+$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${HASS_AUTO_CONF_DISK_TOTAL}" -m "{\"name\":\"${HASS_DEVICE_NAME}\",\"platform\":\"mqtt\",\"uniq_id\":\"${UNIQUE_ID_PREFIX}_2\",\"obj_id\":\"${OBJECT_ID}_disk_total\",\"icon\":\"mdi:harddisk\",\"avty_t\":\"${AVAILABILITY_TOPIC}\",\"pl_avail\":\"${ONLINE}\",\"pl_not_avail\":\"${OFFLINE}\",\"stat_t\":\"${DISK_TOTAL_TOPIC}\",\"dev\":{\"identifiers\":[\"${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}_${UNIQUE_ID}\"],\"name\":\"${DEVICE}_${RAID_LEVEL}_dev_${RAID_DEVICE}\",\"model\":\"mdadm\",\"sw_version\":\"${MDADM_VERSION}\",\"manufacturer\":\"${OS_VERSION}\"}}"
+$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${HASS_AUTO_CONF_DISK_FREE}" -m "{\"name\":\"${HASS_DEVICE_NAME}\",\"platform\":\"mqtt\",\"uniq_id\":\"${UNIQUE_ID_PREFIX}_3\",\"obj_id\":\"${OBJECT_ID}_disk_free\",\"icon\":\"mdi:harddisk\",\"avty_t\":\"${AVAILABILITY_TOPIC}\",\"pl_avail\":\"${ONLINE}\",\"pl_not_avail\":\"${OFFLINE}\",\"stat_t\":\"${DISK_FREE_TOPIC}\",\"dev\":{\"identifiers\":[\"${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}_${UNIQUE_ID}\"],\"name\":\"${DEVICE}_${RAID_LEVEL}_dev_${RAID_DEVICE}\",\"model\":\"mdadm\",\"sw_version\":\"${MDADM_VERSION}\",\"manufacturer\":\"${OS_VERSION}\"}}"
+$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${HASS_AUTO_CONF_DISK_USED}" -m "{\"name\":\"${HASS_DEVICE_NAME}\",\"platform\":\"mqtt\",\"uniq_id\":\"${UNIQUE_ID_PREFIX}_4\",\"obj_id\":\"${OBJECT_ID}_disk_used\",\"icon\":\"mdi:harddisk\",\"avty_t\":\"${AVAILABILITY_TOPIC}\",\"pl_avail\":\"${ONLINE}\",\"pl_not_avail\":\"${OFFLINE}\",\"stat_t\":\"${DISK_USED_TOPIC}\",\"dev\":{\"identifiers\":[\"${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}_${UNIQUE_ID}\"],\"name\":\"${DEVICE}_${RAID_LEVEL}_dev_${RAID_DEVICE}\",\"model\":\"mdadm\",\"sw_version\":\"${MDADM_VERSION}\",\"manufacturer\":\"${OS_VERSION}\"}}"
+$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${HASS_AUTO_CONF_DISK_PCT}" -m "{\"name\":\"${HASS_DEVICE_NAME}\",\"platform\":\"mqtt\",\"uniq_id\":\"${UNIQUE_ID_PREFIX}_5\",\"obj_id\":\"${OBJECT_ID}_disk_used_pct\",\"icon\":\"mdi:harddisk\",\"avty_t\":\"${AVAILABILITY_TOPIC}\",\"pl_avail\":\"${ONLINE}\",\"pl_not_avail\":\"${OFFLINE}\",\"stat_t\":\"${DISK_PERCENT_TOPIC}\",\"dev\":{\"identifiers\":[\"${DEVICE}_${RAID_LEVEL}_${RAID_DEVICE}_${UNIQUE_ID}\"],\"name\":\"${DEVICE}_${RAID_LEVEL}_dev_${RAID_DEVICE}\",\"model\":\"mdadm\",\"sw_version\":\"${MDADM_VERSION}\",\"manufacturer\":\"${OS_VERSION}\"}}"
 
 # online status
 $MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${AVAILABILITY_TOPIC}" -m "${ONLINE}"
@@ -47,8 +69,11 @@ $MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${AVAILABILITY_TOPIC}" -m "${ONLI
 # update state
 $MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${STATE_TOPIC}" -m "${STATE^}"
 
-# update last update
-$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${LAST_UPDATE_TOPIC}" -m "$(date -Iseconds)"
+# update disk usage
+$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${DISK_TOTAL_TOPIC}" -m "${DISK_TOTAL}"
+$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${DISK_FREE_TOPIC}" -m "${DISK_FREE}"
+$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${DISK_USED_TOPIC}" -m "${DISK_USED}"
+$MOSQUITTO_PUB_BIN $MOSQUITTO_XTRA_ARGS -r -t "${DISK_PERCENT_TOPIC}" -m "${DISK_PERCENT}"
 
 # display MQTT messages if debugging is enabled
 if [ "$DEBUG" == "1" ] ; then
@@ -61,11 +86,31 @@ if [ "$DEBUG" == "1" ] ; then
     $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${HASS_AUTO_CONF_STATE}" -C 1 | "$JQ"
     echo -e "$LINE\nLast update config:"
     $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${HASS_AUTO_CONF_LAST_UPDATE}" -C 1 | "$JQ"
+
+    echo -e "$LINE\nDisk total:"
+    $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${HASS_AUTO_CONF_DISK_TOTAL}" -C 1 | "$JQ"
+    echo -e "$LINE\nDisk free:"
+    $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${HASS_DEVICE_NAME_DISK_FREE}" -C 1 | "$JQ"
+    echo -e "$LINE\nDisk used:"
+    $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${HASS_AUTO_CONF_DISK_USED}" -C 1 | "$JQ"
+    echo -e "$LINE\nDisk used percentate:"
+    $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${HASS_AUTO_CONF_DISK_PCT}" -C 1 | "$JQ"
+
     echo -en "$LINE\nStatus topic: ${AVAILABILITY_TOPIC}: "
     $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${AVAILABILITY_TOPIC}" -C 1
     echo -en "$LINE\nEntity: ${OBJECT_ID}_state: "
     $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${STATE_TOPIC}" -C 1
     echo -en "$LINE\nEntity: ${OBJECT_ID}_last_update: "
     $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${LAST_UPDATE_TOPIC}" -C 1
+
+    echo -en "$LINE\nEntity: ${OBJECT_ID}_disk_total: "
+    $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${DISK_TOTAL_TOPIC}" -C 1
+    echo -en "$LINE\nEntity: ${OBJECT_ID}_disk_free: "
+    $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${DISK_FREE_TOPIC}" -C 1
+    echo -en "$LINE\nEntity: ${OBJECT_ID}_disk_used: "
+    $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${DISK_USED_TOPIC}" -C 1
+    echo -en "$LINE\nEntity: ${OBJECT_ID}_disk_used_pct: "
+    $MOSQUITTO_SUB_BIN $MOSQUITTO_XTRA_ARGS -t "${DISK_PERCENT_TOPIC}" -C 1
+
     echo "$LINE"
 fi

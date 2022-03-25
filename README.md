@@ -2,14 +2,28 @@
 
 Simple bash script to monitor the raid status provided by mdadm with home assistant auto configuration
 
+## Sensors
+
+ - Raid status
+ - Last update timestamp
+ - Total disk space
+ - Free disk space
+ - Used disk space
+ - Used disk space in percent
+
 ## Requirements
 
 - mdadm
 - mosquitto_pub
+- df
+- sed
+- cut
 
 Binaries must be in PATH
 
 ### Optional for Debugging
+
+Use --debug to display MQTT config and topic values
 
  - mosquitto_sub
  - jq
