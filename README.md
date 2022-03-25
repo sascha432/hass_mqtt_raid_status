@@ -11,6 +11,9 @@ Simple bash script to monitor the raid status provided by mdadm with home assist
  - Used disk space
  - Used disk space in percent
 
+ ![Devices](https://raw.githubusercontent.com/sascha432/hass_mqtt_raid_status/master/sensors.png)
+
+
 ## Requirements
 
 - mdadm
