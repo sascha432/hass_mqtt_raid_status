@@ -48,7 +48,7 @@ Alternatively run it from `/etc/crontab` every 15min or the desired interval
 
 ## Home Assistant Integration
 
-The device can be found under Configuration / Devices (`http://YOURDOMAIN:8123/config/devices/dashboard`)
+The device can be found under Configuration / Devices ([http://homeassistant.local:8123/config/devices/dashboard](http://homeassistant.local:8123/config/devices/dashboard))
 
 ![Devices](https://raw.githubusercontent.com/sascha432/hass_mqtt_raid_status/master/device.png)
 
