@@ -7,6 +7,13 @@
 #DEVICE="my_device"
 DEVICE="$(hostname)"
 
+# select the unit to display for free space
+DISK_UNIT="TB"
+# divider for df to match the unit
+DISK_DIV=$((1024*1024*1024))
+# number of digits to display
+DISK_DIGITS=3
+
 # raid device /dev/mdXX
 RAID_DEVICE="md0"
 

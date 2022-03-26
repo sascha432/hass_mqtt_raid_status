@@ -6,12 +6,13 @@ Simple bash script to monitor the raid status provided by mdadm with home assist
 
  - Raid status
  - Last update timestamp
- - Total disk space
+ - Total disk space (default in TB, can be configured)
  - Free disk space
  - Used disk space
  - Used disk space in percent
 
  ![Sensors](https://raw.githubusercontent.com/sascha432/hass_mqtt_raid_status/master/sensors.png)
+ ![Stats](https://raw.githubusercontent.com/sascha432/hass_mqtt_raid_status/master/stats.png)
 
 
 ## Requirements
@@ -21,6 +22,7 @@ Simple bash script to monitor the raid status provided by mdadm with home assist
 - df
 - sed
 - cut
+- bc
 
 Binaries must be in PATH
 
