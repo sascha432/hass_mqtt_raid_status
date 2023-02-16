@@ -1,7 +1,14 @@
 # Changelog
 
+## 0.0.3
+
+ - Support for multiple raid devices
+ - Last will to show if the script is not running anymore
+ - Rewritten in python
+
 ## 0.0.2
 
+ - Added option for mount point
  - Added option to select disk space unit
  - Limited df to a single line per device to avoid displaying subvolumes
  - Added total, free, used and used space in percent

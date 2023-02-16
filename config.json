@@ -1,0 +1,23 @@
+{
+    "sys": {
+        "device_name": "$HOSTNAME"
+    },
+    "hass": {
+        "autoconf_topic": "homeassistant",
+        "base_topic": "home"
+    },
+    "mqtt": {
+        "host": "192.168.0.4",
+        "port": 1883,
+        "qos": 2,
+        "transport": "tcp"
+    },
+    "devices": [
+        {
+            "mount_point": "/media/NAS/1",
+            "raid_device": "/dev/md0",
+            "display_unit": "TB",
+            "display_decimal_places": 2
+        }
+    ]
+}

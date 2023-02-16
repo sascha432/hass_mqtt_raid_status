@@ -1,12 +1,12 @@
 # MQTT linux raid monitoring with Home Assistant auto configuration
 
-Simple bash script to monitor the raid status provided by mdadm with home assistant auto configuration
+Python script to monitor the raid status provided by mdadm with home assistant auto configuration
 
 ## Sensors
 
  - Raid status
  - Last update timestamp
- - Total disk space (default in TB, can be configured)
+ - Total disk space (default in GB, can be configured)
  - Free disk space
  - Used disk space
  - Used disk space in percent
@@ -14,42 +14,33 @@ Simple bash script to monitor the raid status provided by mdadm with home assist
  ![Sensors](https://raw.githubusercontent.com/sascha432/hass_mqtt_raid_status/master/sensors.png)
  ![Stats](https://raw.githubusercontent.com/sascha432/hass_mqtt_raid_status/master/stats.png)
 
-
 ## Requirements
 
-- mdadm
-- mosquitto_pub
-- df
-- sed
-- cut
-- bc
+- python 3.9 (other versions might work)
+- paho-mqtt
+- psutil
+- mdadm (binary must be in PATH)
 
-Binaries must be in PATH
+Python requirements can be installed with `pip3 install -r requirements.txt`
 
-### Optional for Debugging
+## TODOs
 
-Use --debug to display MQTT config and topic values
+ - Add systemd service with auto restart on failure
+ - Run mdadm with sudo
+ - Better error/exception handling
+ - Auto restart on disconnect
 
- - mosquitto_sub
- - jq
+### Debugging
+
+Use `--verbose` to display MQTT config and topic values
 
 ## Configuration
 
-Edit `config` to change your device name and the raid device
-
-### Multiple Devices
-
-Currently only one device is supported. To monitor multiple devices just create a copy of `config` and `check-raid` in different directories
+Edit `config.json` to change or add your device name and raid devices
 
 ## Installation
 
-Run as `root` from /etc/cron.hourly to get hourly updates. `mdadm` requires root privileges to be executed
-
-Alternatively run it from `/etc/crontab` every 15min or the desired interval
-
-```bash
-*/15 *  * * *   root    <DIR>/check-raid
-```
+Execute `check-raid.py` as `root`. `mdadm` requires root privileges to be executed. 
 
 ## Home Assistant Integration
 
@@ -57,23 +48,7 @@ The device can be found under Configuration / Devices ([http://homeassistant.loc
 
 ![Devices](https://raw.githubusercontent.com/sascha432/hass_mqtt_raid_status/master/device.png)
 
-### Template with state and last update time
-
-Replace `acidpi4_raid1_md0_*` with your entity ids
-
-```ninja
-{{ states.sensor.acidpi4_raid1_md0_state.state }}
-{{ relative_time(states.sensor.acidpi4_raid1_md0_last_update.last_updated) }} ago
-```
-
-Output:
-
-```txt
-Clean
-3 minutes ago
-```
-
-## Automation Alarm
+## Automated Alarm
 
 To trigger any alarm if the raid fails, you can add an automation if the state of the sensor changes from `Clean` or `Active` to another state
 
