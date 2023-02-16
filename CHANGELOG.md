@@ -2,6 +2,7 @@
 
 ## 0.0.3
 
+ - Raid device and mount point can be configured separately
  - Support for multiple raid devices
  - Last will to show if the script is not running anymore
  - Rewritten in python
