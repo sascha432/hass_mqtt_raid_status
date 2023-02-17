@@ -117,9 +117,10 @@ for device in config['devices']:
     raid_level = None
     raid_device = device['raid_device'].split('/').pop()
 
-    res = subprocess.run(['mdadm', '--misc', '--detail', device['raid_device']], capture_output=True)
+    args = ['mdadm', '--misc', '--detail', device['raid_device']]
+    res = subprocess.run(args, capture_output=True)
     if res.returncode:
-        error('mdadm --misc --detail failed', None)
+        error('Error executing %d: %s' % (res.returncode, ' '.join(args)), None)
     for line in res.stdout.decode().split('\n'):
         args = line.strip().split(':', maxsplit=2)
         if len(args)==2:
@@ -130,9 +131,6 @@ for device in config['devices']:
                 raid_level = value.lower()
             elif key=='state':
                 raid_state = value.capitalize()
-
-            # print(key, value)
-
 
     device_name = '%s %s %s' % (device_name_base.capitalize(), raid_level.capitalize(), device['raid_device'])
     unique_id_dev = unique_id + ('%02x' % number)
@@ -233,45 +231,53 @@ client.loop_start()
 # send raid status
 
 display_decimal_places = max(min(int(device['display_decimal_places']), 4), 0) # allow 0-4 decimal places
-   
-for device in config['devices']:
 
-    raid_state = 'N/A'
-    res = subprocess.run(['mdadm', '--misc', '--detail', device['raid_device']], capture_output=True)
-    for line in res.stdout.decode().split('\n'):
-        args = line.strip().split(':', maxsplit=2)
-        if len(args)==2:
-            name = args[0].strip()
-            value = args[1].strip()
-            key = name.lower().replace(' ', '_')
-            if key=='state':
-                raid_state = value.capitalize()
-                break
+while True:
+    try:
+        for device in config['devices']:
 
-    result = psutil.disk_usage(device['mount_point'])
+            raid_state = 'N/A'
+            args = ['mdadm', '--misc', '--detail', device['raid_device']]
+            res = subprocess.run(args, capture_output=True)
+            if res.returncode:
+                error('Error executing %d: %s' % (res.returncode, ' '.join(args)), None)
+            for line in res.stdout.decode().split('\n'):
+                args = line.strip().split(':', maxsplit=2)
+                if len(args)==2:
+                    name = args[0].strip()
+                    value = args[1].strip()
+                    key = name.lower().replace(' ', '_')
+                    if key=='state':
+                        raid_state = value.capitalize()
+                        break
 
-    verbose('---\ntopic: %s\message: %s' % (state['stat_t'], raid_state))
-    client.publish(state['stat_t'], payload=raid_state, qos=int(config['mqtt']['qos']), retain=True)
+            result = psutil.disk_usage(device['mount_point'])
 
-    time_str = str(int(time.time()))
-    verbose('---\ntopic: %s\message: %s' % (last_update['stat_t'], time_str))
-    client.publish(last_update['stat_t'], payload=time_str, qos=int(config['mqtt']['qos']), retain=True)
+            verbose('---\ntopic: %s\message: %s' % (state['stat_t'], raid_state))
+            client.publish(state['stat_t'], payload=raid_state, qos=int(config['mqtt']['qos']), retain=True)
 
-    total_space_str = ('%%.%df' % display_decimal_places) % (result.total * multiplier)
-    verbose('---\ntopic: %s\message: %s' % (total_space['stat_t'], total_space_str))
-    client.publish(total_space['stat_t'], payload=total_space_str, qos=int(config['mqtt']['qos']), retain=True)
+            time_str = str(int(time.time()))
+            verbose('---\ntopic: %s\message: %s' % (last_update['stat_t'], time_str))
+            client.publish(last_update['stat_t'], payload=time_str, qos=int(config['mqtt']['qos']), retain=True)
 
-    used_space_str = ('%%.%df' % display_decimal_places) % (result.used * multiplier)
-    verbose('---\ntopic: %s\message: %s' % (used_space['stat_t'], used_space_str))
-    client.publish(used_space['stat_t'], payload=used_space_str, qos=int(config['mqtt']['qos']), retain=True)
+            total_space_str = ('%%.%df' % display_decimal_places) % (result.total * multiplier)
+            verbose('---\ntopic: %s\message: %s' % (total_space['stat_t'], total_space_str))
+            client.publish(total_space['stat_t'], payload=total_space_str, qos=int(config['mqtt']['qos']), retain=True)
 
-    free_space_str = ('%%.%df' % display_decimal_places) % (result.free * multiplier)
-    verbose('---\ntopic: %s\message: %s' % (free_space['stat_t'], free_space_str))
-    client.publish(free_space['stat_t'], payload=free_space_str, qos=int(config['mqtt']['qos']), retain=True)
+            used_space_str = ('%%.%df' % display_decimal_places) % (result.used * multiplier)
+            verbose('---\ntopic: %s\message: %s' % (used_space['stat_t'], used_space_str))
+            client.publish(used_space['stat_t'], payload=used_space_str, qos=int(config['mqtt']['qos']), retain=True)
 
-    free_pct_space_str = ('%.1f' % result.percent)
-    verbose('---\ntopic: %s\message: %s' % (free_pct_space['stat_t'], free_pct_space_str))
-    client.publish(free_pct_space['stat_t'], payload=free_pct_space_str, qos=int(config['mqtt']['qos']), retain=True)
+            free_space_str = ('%%.%df' % display_decimal_places) % (result.free * multiplier)
+            verbose('---\ntopic: %s\message: %s' % (free_space['stat_t'], free_space_str))
+            client.publish(free_space['stat_t'], payload=free_space_str, qos=int(config['mqtt']['qos']), retain=True)
+
+            free_pct_space_str = ('%.1f' % result.percent)
+            verbose('---\ntopic: %s\message: %s' % (free_pct_space['stat_t'], free_pct_space_str))
+            client.publish(free_pct_space['stat_t'], payload=free_pct_space_str, qos=int(config['mqtt']['qos']), retain=True)
+
+    except Exception as e:
+        error('An error occurred during publishing the information', e)
 
     verbose('---\nwaiting %d seconds....' % interval)
     time.sleep(interval)
