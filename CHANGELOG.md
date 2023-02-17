@@ -2,6 +2,8 @@
 
 ## 0.0.3
 
+ - Added systemd service script
+ - Config option how to execute the mdadm binary
  - Raid device and mount point can be configured separately
  - Support for multiple raid devices
  - Last will to show if the script is not running anymore

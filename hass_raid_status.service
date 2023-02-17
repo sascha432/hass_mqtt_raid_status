@@ -1,0 +1,15 @@
+[Unit]
+Description=Raid status for Home Assistant
+After=network-online.target
+
+[Service]
+WorkingDirectory=/root/hass_mqtt_raid_status
+Type=simple
+User=root
+ExecStart=/root/hass_mqtt_raid_status/check-raid.py
+Restart=on-failure
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target
+

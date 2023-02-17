@@ -23,13 +23,6 @@ Python script to monitor the raid status provided by mdadm with home assistant a
 
 Python requirements can be installed with `pip3 install -r requirements.txt`
 
-## TODOs
-
- - Add systemd service with auto restart on failure
- - Run mdadm with sudo
- - Better error/exception handling
- - Auto restart on disconnect
-
 ### Debugging
 
 Use `--verbose` to display MQTT config and topic values
@@ -38,9 +31,31 @@ Use `--verbose` to display MQTT config and topic values
 
 Edit `config.json` to change or add your device name and raid devices
 
-## Installation
+### Testing the Configuration
 
-Execute `check-raid.py` as `root`. `mdadm` requires root privileges to be executed. 
+Execute `check-raid.py -v` as `root`. `mdadm` requires root privileges to be executed.
+
+### Installation as Service
+
+Copy `hass_raid_status.service` to your systemd directory, modify the location of the python script and add any required services (for example mosquitto as dependency)
+
+Enable, start and check the service with
+
+``` sh
+systemctl enable hass_raid_status.service
+systemctl start hass_raid_status.service
+systemctl status hass_raid_status.service
+
+● hass_raid_status.service - Raid status for Home Assistant
+     Loaded: loaded (/etc/systemd/system/hass_raid_status.service; enabled; vendor preset: enabled)
+     Active: active (running) since Fri 2023-02-17 04:19:54 PST; 27ms ago
+   Main PID: 14967 (python3)
+      Tasks: 1 (limit: 4915)
+        CPU: 14ms
+     CGroup: /system.slice/hass_raid_status.service
+             └─14967 python3 /root/hass_mqtt_raid_status/check-raid.py
+
+```
 
 ## Home Assistant Integration
 
