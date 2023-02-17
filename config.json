@@ -1,6 +1,7 @@
 {
     "sys": {
-        "device_name": "$HOSTNAME"
+        "device_name": "$HOSTNAME",
+        "mdadm_bin": [ "/usr/sbin/mdadm" ]
     },
     "hass": {
         "autoconf_topic": "homeassistant",
