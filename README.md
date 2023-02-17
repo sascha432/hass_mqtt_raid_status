@@ -19,13 +19,9 @@ Python script to monitor the raid status provided by mdadm with home assistant a
 - python 3.9 (other versions might work)
 - paho-mqtt
 - psutil
-- mdadm (binary must be in PATH)
+- mdadm, blkid, uname
 
 Python requirements can be installed with `pip3 install -r requirements.txt`
-
-### Debugging
-
-Use `--verbose` to display MQTT config and topic values
 
 ## Configuration
 
