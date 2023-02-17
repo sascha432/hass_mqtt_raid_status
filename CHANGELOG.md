@@ -2,6 +2,7 @@
 
 ## 0.0.3
 
+ - Removed redundant `last_update` topic
  - Added systemd service script
  - Config option how to execute the mdadm binary
  - Raid device and mount point can be configured separately
