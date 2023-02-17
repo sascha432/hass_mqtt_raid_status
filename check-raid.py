@@ -42,7 +42,7 @@ try:
 except Exception as e:
     error('Failed to read configuration: %s' % config_file, e)
 
-res = subprocess.run(['mdadm', '-V'], capture_output=True)
+res = subprocess.run(config['sys']['mdadm_bin'] + ['-V'], capture_output=True)
 mdadm_version = res.stderr.decode().strip()
 
 res = subprocess.run(['uname', '-r', '-o', '-s', '-m'], capture_output=True)
@@ -99,14 +99,14 @@ for device in config['devices']:
     elif unit=='KB':
         multiplier = 1024
     elif unit=='MB':
-        multiplier = 1024 * 1024
+        multiplier = 1024 << 10
     elif unit=='GB':
-        multiplier = 1024 * 1024 * 1024
+        multiplier = 1024 << 20
     elif unit=='TB':
-        multiplier = 1024 * 1024 * 1024 * 1024
+        multiplier = 1024 << 30
     else:
         unit = 'GB'
-        multiplier = 1024 * 1024 * 1024
+        multiplier = 1024 << 20
     multiplier = 1 / multiplier
 
     # get unique id from the device block id
@@ -117,7 +117,7 @@ for device in config['devices']:
     raid_level = None
     raid_device = device['raid_device'].split('/').pop()
 
-    args = ['mdadm', '--misc', '--detail', device['raid_device']]
+    args = config['sys']['mdadm_bin'] + ['--misc', '--detail', device['raid_device']]
     res = subprocess.run(args, capture_output=True)
     if res.returncode:
         error('Error executing %d: %s' % (res.returncode, ' '.join(args)), None)
@@ -237,7 +237,9 @@ while True:
         for device in config['devices']:
 
             raid_state = 'N/A'
-            args = ['mdadm', '--misc', '--detail', device['raid_device']]
+            
+            
+            args = config['sys']['mdadm_bin'] + ['--misc', '--detail', device['raid_device']]
             res = subprocess.run(args, capture_output=True)
             if res.returncode:
                 error('Error executing %d: %s' % (res.returncode, ' '.join(args)), None)
