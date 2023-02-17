@@ -155,14 +155,6 @@ for device in config['devices']:
     state.update(extra_info)
     state.update(device_info)
     
-    # last update config
-    number += 23
-    last_update = copy.deepcopy(state)
-    last_update['obj_id'] = object_id + '_last_update'
-    last_update['uniq_id'] = unique_id + ('%02x' % number)
-    last_update['stat_t'] = '%s/%s_%s_%s/last_update' % (config['hass']['base_topic'], device_name_base, raid_level, raid_device)
-    last_update['dev_cla'] = 'timestamp'
-
     # total space
     number += 23
     total_space = copy.deepcopy(state)
@@ -201,10 +193,6 @@ for device in config['devices']:
     topic = '%s/sensor/%s/state/config' % (config['hass']['autoconf_topic'], object_id)
     verbose('---\ntopic: %s\nconfig: %s' % (topic, json.dumps(state)))
     client.publish(topic, payload=json.dumps(state), qos=int(config['mqtt']['qos']), retain=True)
-
-    topic = '%s/sensor/%s/last_update/config' % (config['hass']['autoconf_topic'], object_id)
-    verbose('---\ntopic: %s\nconfig: %s' % (topic, json.dumps(last_update)))
-    client.publish(topic, payload=json.dumps(last_update), qos=int(config['mqtt']['qos']), retain=True)
 
     topic = '%s/sensor/%s/total_space/config' % (config['hass']['autoconf_topic'], object_id)
     verbose('---\ntopic: %s\nconfig: %s' % (topic, json.dumps(total_space)))
@@ -257,10 +245,6 @@ while True:
 
             verbose('---\ntopic: %s\message: %s' % (state['stat_t'], raid_state))
             client.publish(state['stat_t'], payload=raid_state, qos=int(config['mqtt']['qos']), retain=True)
-
-            time_str = str(int(time.time()))
-            verbose('---\ntopic: %s\message: %s' % (last_update['stat_t'], time_str))
-            client.publish(last_update['stat_t'], payload=time_str, qos=int(config['mqtt']['qos']), retain=True)
 
             total_space_str = ('%%.%df' % display_decimal_places) % (result.total * multiplier)
             verbose('---\ntopic: %s\message: %s' % (total_space['stat_t'], total_space_str))
