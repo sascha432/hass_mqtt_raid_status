@@ -176,7 +176,7 @@ for device in config['devices']:
     free_space = copy.deepcopy(state)
     free_space['obj_id'] = object_id + '_free'
     free_space['uniq_id'] = unique_id + ('%02x' % number)
-    free_space['stat_t'] = '%s/%s_%s_%s/total' % (config['hass']['base_topic'], device_name_base, raid_level, raid_device)
+    free_space['stat_t'] = '%s/%s_%s_%s/free' % (config['hass']['base_topic'], device_name_base, raid_level, raid_device)
     free_space['unit_of_measurement'] = unit
 
     # used space percentage
