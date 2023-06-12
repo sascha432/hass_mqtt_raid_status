@@ -164,9 +164,6 @@ for device in config['devices']:
     total_space['stat_t'] = '%s/%s_%s_%s/total' % (config['hass']['base_topic'], device_name_base, raid_level, raid_device)
     total_space['unit_of_measurement'] = unit
 
-    # update state name
-    state['name'] += ' State'
-
     # free space
     number += 23
     free_space = copy.deepcopy(state)
@@ -193,6 +190,9 @@ for device in config['devices']:
     used_space['uniq_id'] = unique_id + ('%02x' % number)
     used_space['stat_t'] = '%s/%s_%s_%s/used' % (config['hass']['base_topic'], device_name_base, raid_level, raid_device)
     used_space['unit_of_measurement'] = unit
+
+    # update state name
+    state['name'] = copy.copy(state['name']) + ' State'
 
     # send homeassistant config
     verbose('state: %s\ndevice: %s\nraid device: %s\ndisplay unit: %s' % (raid_state, device_name_base, device['raid_device'], unit))
