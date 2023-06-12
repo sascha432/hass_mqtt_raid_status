@@ -158,16 +158,19 @@ for device in config['devices']:
     # total space
     number += 23
     total_space = copy.deepcopy(state)
-    total_space['name'] += ' Total'
+    total_space['name'] += ' Total Space'
     total_space['obj_id'] = object_id + '_total'
     total_space['uniq_id'] = unique_id + ('%02x' % number)
     total_space['stat_t'] = '%s/%s_%s_%s/total' % (config['hass']['base_topic'], device_name_base, raid_level, raid_device)
     total_space['unit_of_measurement'] = unit
 
+    # update state name
+    state['name'] += ' State'
+
     # free space
     number += 23
     free_space = copy.deepcopy(state)
-    free_space['name'] += ' Free'
+    free_space['name'] += ' Free Space'
     free_space['obj_id'] = object_id + '_free'
     free_space['uniq_id'] = unique_id + ('%02x' % number)
     free_space['stat_t'] = '%s/%s_%s_%s/free' % (config['hass']['base_topic'], device_name_base, raid_level, raid_device)
@@ -176,7 +179,7 @@ for device in config['devices']:
     # used space percentage
     number += 23
     free_pct_space = copy.deepcopy(state)
-    free_pct_space['name'] += ' Total Pct'
+    free_pct_space['name'] += ' Free Space Pct'
     free_pct_space['obj_id'] = object_id + '_free_pct'
     free_pct_space['uniq_id'] = unique_id + ('%02x' % number)
     free_pct_space['stat_t'] = '%s/%s_%s_%s/free_pct' % (config['hass']['base_topic'], device_name_base, raid_level, raid_device)
@@ -185,7 +188,7 @@ for device in config['devices']:
     # used space
     number += 23
     used_space = copy.deepcopy(state)
-    used_space['name'] += ' Used'
+    used_space['name'] += ' Used Space'
     used_space['obj_id'] = object_id + '_used'
     used_space['uniq_id'] = unique_id + ('%02x' % number)
     used_space['stat_t'] = '%s/%s_%s_%s/used' % (config['hass']['base_topic'], device_name_base, raid_level, raid_device)
