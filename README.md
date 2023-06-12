@@ -36,7 +36,7 @@ Execute `check-raid.py -v` as `root`. `mdadm` requires root privileges to be exe
 Copy `hass_raid_status.service` to your systemd directory, modify the location of the python script and add any required services (for example mosquitto as dependency)
 
 Enable, start and check the service with
-
+EEE
 ``` sh
 systemctl enable hass_raid_status.service
 systemctl start hass_raid_status.service
@@ -58,6 +58,7 @@ systemctl status hass_raid_status.service
 The device can be found under Configuration / Devices ([http://homeassistant.local:8123/config/devices/dashboard](http://homeassistant.local:8123/config/devices/dashboard))
 
 ![Devices](https://raw.githubusercontent.com/sascha432/hass_mqtt_raid_status/master/device.png)
+![Entities](https://raw.githubusercontent.com/sascha432/hass_mqtt_raid_status/master/entities.png)
 
 ## Automated Alarm
 
