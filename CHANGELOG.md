@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.4
+
+ - Fixed free space showing used space
+ - Added suffix to entity names
+
 ## 0.0.3
 
  - Removed redundant `last_update` topic
