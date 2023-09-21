@@ -6,7 +6,7 @@ After=network-online.target
 WorkingDirectory=/root/hass_mqtt_raid_status
 Type=simple
 User=root
-ExecStart=/root/hass_mqtt_raid_status/check-raid.py
+ExecStart=/usr/bin/python3 /root/hass_mqtt_raid_status/check-raid.py
 Restart=on-failure
 RestartSec=60
 
