@@ -11,7 +11,9 @@
         "host": "192.168.0.4",
         "port": 1883,
         "qos": 2,
-        "transport": "tcp"
+        "transport": "tcp",
+        "mqtt_username": "mqtt_username",
+        "mqtt_password": "mqtt_password"
     },
     "devices": [
         {

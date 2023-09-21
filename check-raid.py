@@ -51,7 +51,12 @@ os_version = res.stdout.decode().strip()
 client = None
 try:
     client = mqtt.Client(client_id='', clean_session=True, userdata=None, protocol=mqtt.MQTTv311, transport=config['mqtt']['transport'])
+    mqtt_username = config['mqtt']['mqtt_username']
+    mqtt_password = config['mqtt']['mqtt_password']
+    if mqtt_username != "" and mqtt_password != "":
+        client.username_pw_set(mqtt_username,mqtt_password)
     client.connect(config['mqtt']['host'], port=int(config['mqtt']['port']), keepalive=60, bind_address='')
+
 except Exception as e:
     error('Failed to connect to MQTT: %s:%d' % (config['mqtt']['host'], int(config['mqtt']['port'])), e)
 
