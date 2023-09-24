@@ -36,9 +36,13 @@ Python requirements can be installed with `pip3 install -r requirements.txt`
 
 Edit `config.json` to change or add your device name and raid devices
 
+### Multiple Raid Devices
+
+Any raid device `/dev/mdX` can be added (`raid_device`). The device must be mounted (`mount_point`) to gather file system information
+
 ### Testing the Configuration
 
-Execute `check-raid.py -v` as `root`. `mdadm` requires root privileges to be executed.
+Execute `check-raid.py -v` as `root`. `mdadm` requires root privileges to be executed. If run as sudo has been enabled, the current user must be able to execute `sudo mdadm` without a password
 
 ### Installation as Service
 
