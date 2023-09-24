@@ -22,10 +22,8 @@ parser.add_argument("-p", "--print", help="print configuration and exit", action
 
 args = parser.parse_args()
 
-VERBOSE = args.verbose
-
 def verbose(msg):
-    if VERBOSE:
+    if args.verbose:
         print(msg)
 
 def error(msg, e=None):
