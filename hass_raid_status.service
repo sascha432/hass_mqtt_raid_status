@@ -1,15 +1,16 @@
 [Unit]
 Description=Raid status for Home Assistant
 After=network-online.target
+#After=network-online.target mosquitto.service
 
 [Service]
-WorkingDirectory=/root/hass_mqtt_raid_status
+WorkingDirectory=/YOUR_WORKING_DIRECTORY/hass_mqtt_raid_status
 Type=simple
 User=root
-ExecStart=/root/hass_mqtt_raid_status/check-raid.py
+ExecStart=/usr/bin/python3 ./check-raid.py
+#ExecStart=/usr/bin/python3 /usr/local/bin/check-raid.py -c /etc/check-raid.json
 Restart=on-failure
 RestartSec=60
 
 [Install]
 WantedBy=multi-user.target
-

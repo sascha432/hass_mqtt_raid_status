@@ -2,6 +2,14 @@
 
 Python script to monitor the raid status provided by mdadm with home assistant auto configuration
 
+## Changelog
+
+  - Rewritten connection handler (last will, online status)
+  - Pass configuration file as argument
+  - Added MQTT username and password
+  - Default configuration built-in
+  - Updated systemd script
+
 ## Sensors
 
  - Raid status

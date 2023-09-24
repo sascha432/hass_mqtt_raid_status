@@ -1,24 +1,41 @@
 {
-    "sys": {
-        "device_name": "$HOSTNAME",
-        "mdadm_bin": [ "/usr/sbin/mdadm" ]
-    },
-    "hass": {
-        "autoconf_topic": "homeassistant",
-        "base_topic": "home"
+    "default_config": {
+        "info": "default configuration values",
+        "defaults": {
+            "sys": {
+                "device_name": "$HOSTNAME",
+                "mdadm_bin": "mdadm"
+            },
+            "hass": {
+                "autoconf_topic": "homeassistant",
+                "base_topic": "home",
+                "availability_topic": "${base_topic}/${device_name}-check-raid/status"
+            },
+            "mqtt": {
+                "version": 4,
+                "port": 1883,
+                "qos": 2,
+                "transport": "tcp",
+                "keepalive": 60,
+                "username": null,
+                "password": null
+            },
+            "devices": [
+                {
+                    "display_unit": "TB",
+                    "display_decimal_places": 2
+                }
+            ]
+        }
     },
     "mqtt": {
-        "host": "192.168.0.4",
-        "port": 1883,
-        "qos": 2,
-        "transport": "tcp"
+        "version": 5,
+        "host": "192.168.0.4"
     },
     "devices": [
         {
             "mount_point": "/media/NAS/1",
-            "raid_device": "/dev/md0",
-            "display_unit": "TB",
-            "display_decimal_places": 2
+            "raid_device": "/dev/md0"
         }
     ]
 }
