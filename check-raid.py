@@ -23,7 +23,6 @@ parser.add_argument("-p", "--print", help="print configuration and exit", action
 args = parser.parse_args()
 
 VERBOSE = args.verbose
-interval = max(60, int(args.interval))
 
 def verbose(msg):
     if VERBOSE:
@@ -43,10 +42,22 @@ def get_mqtt_username(username):
         return username
     return 'Anonymous'
 
+def get_mqtt_password(password):
+    if isinstance(password, str):
+        return len(password) * '*'
+    return '<None>'
+
+def get_mqtt_account(config):
+    if has_mqtt_username(config['username']):
+        return '%s:%s' % (config['username'], get_mqtt_password(config['password']))
+    return 'Anonymous'
+
 device_name = None
-connected = False
-current_delay = None
-resend_online_status = False
+state = {
+    'connected': False,
+    'current_delay': None,
+    'resend_online_status': False
+}
 client = None
 config_file = os.path.abspath(args.config);
 config = {
@@ -62,6 +73,12 @@ try:
 except Exception as e:
     error('Failed to read configuration: %s' % config_file, e)
 
+# get mdadm command line args
+def mdadm_cmd(args):
+    if config['sys']['sudo']:
+        return [config['sys']['sudo'], config['sys']['mdadm_bin']] + args
+    else:
+        return [config['sys']['mdadm_bin']] + args
 
 # default config for devices
 default_device_config = {
@@ -73,7 +90,9 @@ default_device_config = {
 config_defaults = {
     'sys': {
         'device_name': '$HOSTNAME',
-        'mdadm_bin': 'mdadm'
+        'mdadm_bin': 'mdadm',
+        'sudo': False,
+        'interval': args.interval
     },
     'hass': {
         'autoconf_topic': 'homeassistant',
@@ -94,8 +113,7 @@ config_defaults = {
     },
     'info': {
         'mdadm_version': None,
-        'os_version': None,
-        'interval': interval
+        'os_version': None
     }
 };
 # merge default settings per key
@@ -166,12 +184,21 @@ config['hass']['availability_topic'] = s
 # keepalive 5-3600 seconds
 config['mqtt']['keepalive'] = min(3600, max(5, int(config['mqtt']['keepalive'])))
 
+# normalize port
+config['mqtt']['port'] = int(config['mqtt']['port'])
+
+# update interval
+config['sys']['interval'] = max(30, int(config['sys']['interval']))
+
 # find binary if no absolute path was given
 if not os.path.isabs(config['sys']['mdadm_bin']):
     config['sys']['mdadm_bin'] = shutil.which(config['sys']['mdadm_bin'])
 
+if config['sys']['sudo']:
+    config['sys']['sudo'] = shutil.which('sudo')
+
 # mdadm version
-res = subprocess.run([config['sys']['mdadm_bin'], '-V'], capture_output=True)
+res = subprocess.run(mdadm_cmd(['-V']), capture_output=True)
 mdadm_version = res.stderr.decode().strip()
 config['info']['mdadm_version'] = mdadm_version
 
@@ -206,14 +233,12 @@ extra_info = {
     "sw_version": mdadm_version,
     "manufacturer": os_version
 }
-
 topics = {
     "avty_t": None,
     "pl_avail": get_online_status(),
     "pl_not_avail": get_offline_status(),
     "stat_t": None
 }
-
 device_info = {
     "dev": {
         "identifiers": None,
@@ -234,23 +259,21 @@ def publish_offline(client):
 
 # returns True, False or None for connection terminated
 def is_connected():
-    global connected
-    return connected
+    return state['connected']
 
-def set_connected(state):
-    global connected
-    connected = state
+def set_connected(connected):
+    state['connected'] = connected
 
 def reset_main_loop_delay(delay = 2):
-    global current_delay
-    verbose('reset main delay')
     if delay<=0:
         delay = None
-    current_delay = delay
+    if delay==state['current_delay']:
+        return
+    verbose('reset main delay')
+    state['current_delay'] = delay
 
-def set_resend_online_status(state):
-    global resend_online_status
-    resend_online_status = state
+def set_resend_online_status(resend):
+    state['resend_online_status'] = resend
 
 # set connection online
 def on_connect(client, userdata, flags, rc, *args):
@@ -320,6 +343,7 @@ try:
     version = int(config['mqtt']['version'])
     client = mqtt.Client(client_id=None, clean_session=version <= mqtt.MQTTv311 and True or None, userdata=None, protocol=version, transport=config['mqtt']['transport'], reconnect_on_failure=True)
     if has_mqtt_username(config['mqtt']['username']):
+        verbose('setting username=%s password=%s' % (config['mqtt']['username'], get_mqtt_password(config['mqtt']['password'])))
         client.username_pw_set(config['mqtt']['username'], config['mqtt']['password'])
 
     # callbacks and exit routines
@@ -332,11 +356,12 @@ try:
     client.will_set(config['hass']['availability_topic'], payload=get_offline_status(), qos=2, retain=True)
 
     # connect client
-    connected = False
-    client.connect(config['mqtt']['host'], port=int(config['mqtt']['port']), keepalive=config['mqtt']['keepalive'], bind_address='')
+    verbose('connecting to %s@%s:%d' % (get_mqtt_account(config['mqtt']), config['mqtt']['host'], config['mqtt']['port']))
+    set_connected(False)
+    client.connect(config['mqtt']['host'], port=config['mqtt']['port'], keepalive=config['mqtt']['keepalive'], bind_address='')
 
 except Exception as e:
-    error('Failed to connect to MQTT: %s@%s:%d' % (get_mqtt_username(config['mqtt']['username']), config['mqtt']['host'], int(config['mqtt']['port'])), e)
+    error('Failed to connect to MQTT: %s@%s:%d' % (get_mqtt_account(config['mqtt']), config['mqtt']['host'], config['mqtt']['port']), e)
 
 
 # start mqtt client loop
@@ -355,7 +380,7 @@ for device in config['devices']:
     raid_level = None
     raid_device = device['raid_device'].split('/').pop()
 
-    args = (config['sys']['mdadm_bin'], '--misc', '--detail', device['raid_device'])
+    args = mdadm_cmd(['--misc', '--detail', device['raid_device']])
     res = subprocess.run(args, capture_output=True)
     if res.returncode:
         error('Error executing %d: %s' % (res.returncode, ' '.join(args)), None)
@@ -382,20 +407,20 @@ for device in config['devices']:
     object_id = '%s_%s_%s' % (device_name, raid_level, raid_device)
 
     # state config / template for all
-    state = {
+    device_state = {
         'name': display_device_name,
         'platform': 'mqtt',
         'uniq_id': unique_id_dev,
         'obj_id': object_id + '_state',
         'icon': config['mqtt']['icon']
     }
-    state.update(topics)
-    state.update(extra_info)
-    state.update(device_info)
+    device_state.update(topics)
+    device_state.update(extra_info)
+    device_state.update(device_info)
 
     # total space
     number += 23
-    total_space = copy.deepcopy(state)
+    total_space = copy.deepcopy(device_state)
     total_space['name'] += ' Total Space'
     total_space['obj_id'] = object_id + '_total'
     total_space['uniq_id'] = unique_id + ('%02x' % number)
@@ -404,7 +429,7 @@ for device in config['devices']:
 
     # free space
     number += 23
-    free_space = copy.deepcopy(state)
+    free_space = copy.deepcopy(device_state)
     free_space['name'] += ' Free Space'
     free_space['obj_id'] = object_id + '_free'
     free_space['uniq_id'] = unique_id + ('%02x' % number)
@@ -413,7 +438,7 @@ for device in config['devices']:
 
     # used space percentage
     number += 23
-    free_pct_space = copy.deepcopy(state)
+    free_pct_space = copy.deepcopy(device_state)
     free_pct_space['name'] += ' Free Space Pct'
     free_pct_space['obj_id'] = object_id + '_free_pct'
     free_pct_space['uniq_id'] = unique_id + ('%02x' % number)
@@ -422,7 +447,7 @@ for device in config['devices']:
 
     # used space
     number += 23
-    used_space = copy.deepcopy(state)
+    used_space = copy.deepcopy(device_state)
     used_space['name'] += ' Used Space'
     used_space['obj_id'] = object_id + '_used'
     used_space['uniq_id'] = unique_id + ('%02x' % number)
@@ -430,12 +455,12 @@ for device in config['devices']:
     used_space['unit_of_measurement'] = device['display_unit']
 
     # append State to name
-    state['name'] = state['name'] + ' State'
+    device_state['name'] = device_state['name'] + ' State'
 
     # send homeassistant config
     verbose('device %u\nstate: %s\ndevice: %s\nraid device: %s\nmount point: %s\ndisplay unit: %s' % (device['num'], raid_state, device_name, device['raid_device'], device['mount_point'], device['display_unit']))
 
-    publish_config(client, 'state', state, object_id)
+    publish_config(client, 'state', device_state, object_id)
     publish_config(client, 'total_space', total_space, object_id)
     publish_config(client, 'free_space', free_space, object_id)
     publish_config(client, 'free_pct_space', free_pct_space, object_id)
@@ -445,7 +470,7 @@ for device in config['devices']:
 def main_loop(client):
     for device in config['devices']:
         raid_state = 'N/A'
-        args = (config['sys']['mdadm_bin'], '--misc', '--detail', device['raid_device'])
+        args = mdadm_cmd(['--misc', '--detail', device['raid_device']])
         res = subprocess.run(args, capture_output=True)
         if res.returncode:
             error('Error executing %d: %s' % (res.returncode, ' '.join(args)), None)
@@ -462,7 +487,7 @@ def main_loop(client):
         result = psutil.disk_usage(device['mount_point'])
 
         verbose('---')
-        publish(client, state['stat_t'], raid_state)
+        publish(client, device_state['stat_t'], raid_state)
         publish(client, total_space['stat_t'], ('%%.%df' % device['display_decimal_places']) % (result.total * device['multiplier']))
         publish(client, used_space['stat_t'], ('%%.%df' % device['display_decimal_places']) % (result.used * device['multiplier']))
         publish(client, free_space['stat_t'], ('%%.%df' % device['display_decimal_places']) % (result.free * device['multiplier']))
@@ -474,7 +499,7 @@ while True:
     try:
         if is_connected():
             # check if we have to resend the online status
-            if resend_online_status:
+            if state['resend_online_status']:
                 set_resend_online_status(False)
                 publish_online(client)
 
@@ -484,15 +509,15 @@ while True:
             except Exception as e:
                 error('Main loop aborted', e)
 
-            verbose('---\nwaiting %d seconds....' % interval)
-            current_delay = interval
+            verbose('---\nwaiting %d seconds....' % config['sys']['interval'])
+            state['current_delay'] = config['sys']['interval']
         else:
-            current_delay = 1
+            state['current_delay'] = 1
 
-        while current_delay:
+        while state['current_delay']:
             time.sleep(1)
             try:
-                current_delay -= 1 # TypeError if None
+                state['current_delay'] -= 1 # TypeError if None
             except:
                 break
     except KeyboardInterrupt:

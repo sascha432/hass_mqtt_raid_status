@@ -4,7 +4,8 @@
         "defaults": {
             "sys": {
                 "device_name": "$HOSTNAME",
-                "mdadm_bin": "mdadm"
+                "mdadm_bin": "mdadm",
+                "sudo": false
             },
             "hass": {
                 "autoconf_topic": "homeassistant",
@@ -30,7 +31,7 @@
     },
     "mqtt": {
         "version": 5,
-        "host": "192.168.0.4"
+        "host": "192.168.0.40"
     },
     "devices": [
         {
