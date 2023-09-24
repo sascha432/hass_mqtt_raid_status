@@ -21,9 +21,10 @@ parser.add_argument("-i", "--interval", help="interval to update the raid status
 parser.add_argument("-p", "--print", help="print configuration and exit", action="store_true", default=False)
 
 args = parser.parse_args()
+VERBOSE = args.verbose
 
 def verbose(msg):
-    if args.verbose:
+    if VERBOSE:
         print(msg)
 
 def error(msg, e=None):
@@ -78,6 +79,12 @@ def mdadm_cmd(args):
     else:
         return [config['sys']['mdadm_bin']] + args
 
+# validate configuration
+if 'default_config' in config:
+    del config['default_config']
+if 'info' in config:
+    del config['info']
+
 # default config for devices
 default_device_config = {
     'display_unit': 'TB',
@@ -121,10 +128,6 @@ for (key, val) in config_defaults.items():
     else:
         config[key] = dict(val | config[key]);
 
-# validate configuration
-if 'default_config' in config:
-    del config['default_config']
-
 # resolve device name
 if config['sys']['device_name']=='$HOSTNAME':
     config['sys']['device_name'] = socket.gethostname()
@@ -163,7 +166,6 @@ for device in config['devices']:
     tmp['display_unit'] = unit
     tmp['multiplier'] = multiplier
     tmp['display_decimal_places'] = max(min(int(tmp['display_decimal_places']), 4), 0) # allow 0-4 decimal places
-    tmp['num'] = idx
     config['devices'][idx] = tmp
     idx += 1
 
@@ -456,7 +458,7 @@ for device in config['devices']:
     device_state['name'] = device_state['name'] + ' State'
 
     # send homeassistant config
-    verbose('device %u\nstate: %s\ndevice: %s\nraid device: %s\nmount point: %s\ndisplay unit: %s' % (device['num'], raid_state, device_name, device['raid_device'], device['mount_point'], device['display_unit']))
+    verbose('state: %s\ndevice: %s\nraid device: %s\nmount point: %s\ndisplay unit: %s' % (raid_state, device_name, device['raid_device'], device['mount_point'], device['display_unit']))
 
     publish_config(client, 'state', device_state, object_id)
     publish_config(client, 'total_space', total_space, object_id)
