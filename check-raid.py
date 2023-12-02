@@ -369,6 +369,8 @@ client.loop_start()
 
 # generate autoconf
 device_states = {}
+resync_progresses = {}
+check_progresses = {}
 total_spaces = {}
 free_spaces = {}
 free_pct_spaces = {}
@@ -464,6 +466,26 @@ for device in config['devices']:
     used_space['unit_of_measurement'] = device['display_unit']
     used_spaces[device['raid_device']] = used_space
 
+    # resync progress
+    number += 24
+    resync_progress = copy.deepcopy(device_state)
+    resync_progress['name'] += ' Resync Progress'
+    resync_progress['obj_id'] = object_id + '_resync_progress'
+    resync_progress['uniq_id'] = unique_id + ('%02x' % number)
+    resync_progress['stat_t'] = '%s/%s_%s_%s/resync_progress' % (config['hass']['base_topic'], device_name, raid_level, raid_device)
+    resync_progress['unit_of_measurement'] = '%'
+    resync_progresses[device['raid_device']] = resync_progress
+
+    # check progress
+    number += 25
+    check_progress = copy.deepcopy(device_state)
+    check_progress['name'] += ' Check Progress'
+    check_progress['obj_id'] = object_id + '_check_progress'
+    check_progress['uniq_id'] = unique_id + ('%02x' % number)
+    check_progress['stat_t'] = '%s/%s_%s_%s/check_progress' % (config['hass']['base_topic'], device_name, raid_level, raid_device)
+    check_progress['unit_of_measurement'] = '%'
+    check_progresses[device['raid_device']] = check_progress
+
     # append State to name
     device_state['name'] = device_state['name'] + ' State'
 
@@ -475,11 +497,15 @@ for device in config['devices']:
     publish_config(client, 'free_space', free_space, object_id)
     publish_config(client, 'free_pct_space', free_pct_space, object_id)
     publish_config(client, 'used_space', used_space, object_id)
+    publish_config(client, 'resync_progress', resync_progress, object_id)
+    publish_config(client, 'check_progress', check_progress, object_id)
 
 # update raid status
 def main_loop(client):
     for device in config['devices']:
         raid_state = 'N/A'
+        resync_progress_value = '100'
+        check_progress_value = '100'
         args = mdadm_cmd(['--misc', '--detail', device['raid_device']])
         res = subprocess.run(args, capture_output=True)
         if res.returncode:
@@ -492,7 +518,13 @@ def main_loop(client):
                 key = name.lower().replace(' ', '_')
                 if key=='state':
                     raid_state = value.capitalize()
-                    break
+                    continue
+                elif key=='resync_status':
+                    resync_progress_value = value.strip().split('%', maxsplit=2)[0]
+                    continue
+                elif key == 'check_status':
+                    check_progress_value = value.strip().split('%', maxsplit=2)[0]
+                    continue
 
         result = psutil.disk_usage(device['mount_point'])
 
@@ -502,6 +534,8 @@ def main_loop(client):
         publish(client, used_spaces[device['raid_device']]['stat_t'], ('%%.%df' % device['display_decimal_places']) % (result.used * device['multiplier']))
         publish(client, free_spaces[device['raid_device']]['stat_t'], ('%%.%df' % device['display_decimal_places']) % (result.free * device['multiplier']))
         publish(client, free_pct_spaces[device['raid_device']]['stat_t'], ('%.1f' % (100.0 - result.percent)))
+        publish(client, resync_progresses[device['raid_device']]['stat_t'], resync_progress_value)
+        publish(client, check_progresses[device['raid_device']]['stat_t'], check_progress_value)
 
 # run indefinitely
 while True:
