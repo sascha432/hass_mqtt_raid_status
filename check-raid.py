@@ -368,6 +368,11 @@ except Exception as e:
 client.loop_start()
 
 # generate autoconf
+device_states = {}
+total_spaces = {}
+free_spaces = {}
+free_pct_spaces = {}
+used_spaces = {}
 number = 42
 for device in config['devices']:
     verbose('------------------------------------')
@@ -417,6 +422,7 @@ for device in config['devices']:
     device_state.update(topics)
     device_state.update(extra_info)
     device_state.update(device_info)
+    device_states[device['raid_device']] = device_state
 
     # total space
     number += 23
@@ -426,6 +432,7 @@ for device in config['devices']:
     total_space['uniq_id'] = unique_id + ('%02x' % number)
     total_space['stat_t'] = '%s/%s_%s_%s/total' % (config['hass']['base_topic'], device_name, raid_level, raid_device)
     total_space['unit_of_measurement'] = device['display_unit']
+    total_spaces[device['raid_device']] = total_space
 
     # free space
     number += 23
@@ -435,6 +442,7 @@ for device in config['devices']:
     free_space['uniq_id'] = unique_id + ('%02x' % number)
     free_space['stat_t'] = '%s/%s_%s_%s/free' % (config['hass']['base_topic'], device_name, raid_level, raid_device)
     free_space['unit_of_measurement'] = device['display_unit']
+    free_spaces[device['raid_device']] = free_space
 
     # used space percentage
     number += 23
@@ -444,6 +452,7 @@ for device in config['devices']:
     free_pct_space['uniq_id'] = unique_id + ('%02x' % number)
     free_pct_space['stat_t'] = '%s/%s_%s_%s/free_pct' % (config['hass']['base_topic'], device_name, raid_level, raid_device)
     free_pct_space['unit_of_measurement'] = '%'
+    free_pct_spaces[device['raid_device']] = free_pct_space
 
     # used space
     number += 23
@@ -453,6 +462,7 @@ for device in config['devices']:
     used_space['uniq_id'] = unique_id + ('%02x' % number)
     used_space['stat_t'] = '%s/%s_%s_%s/used' % (config['hass']['base_topic'], device_name, raid_level, raid_device)
     used_space['unit_of_measurement'] = device['display_unit']
+    used_spaces[device['raid_device']] = used_space
 
     # append State to name
     device_state['name'] = device_state['name'] + ' State'
@@ -487,12 +497,11 @@ def main_loop(client):
         result = psutil.disk_usage(device['mount_point'])
 
         verbose('---')
-        publish(client, device_state['stat_t'], raid_state)
-        publish(client, total_space['stat_t'], ('%%.%df' % device['display_decimal_places']) % (result.total * device['multiplier']))
-        publish(client, used_space['stat_t'], ('%%.%df' % device['display_decimal_places']) % (result.used * device['multiplier']))
-        publish(client, free_space['stat_t'], ('%%.%df' % device['display_decimal_places']) % (result.free * device['multiplier']))
-        publish(client, free_pct_space['stat_t'], ('%.1f' % (100.0 - result.percent)))
-
+        publish(client, device_states[device['raid_device']]['stat_t'], raid_state)
+        publish(client, total_spaces[device['raid_device']]['stat_t'], ('%%.%df' % device['display_decimal_places']) % (result.total * device['multiplier']))
+        publish(client, used_spaces[device['raid_device']]['stat_t'], ('%%.%df' % device['display_decimal_places']) % (result.used * device['multiplier']))
+        publish(client, free_spaces[device['raid_device']]['stat_t'], ('%%.%df' % device['display_decimal_places']) % (result.free * device['multiplier']))
+        publish(client, free_pct_spaces[device['raid_device']]['stat_t'], ('%.1f' % (100.0 - result.percent)))
 
 # run indefinitely
 while True:
